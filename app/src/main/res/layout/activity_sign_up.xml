@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainStatusImageView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".SignUpActivity"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@color/grayBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/imageView2"
+            android:layout_width="130dp"
+            android:layout_height="130dp"
+            android:layout_marginTop="50dp"
+            app:srcCompat="@drawable/wetalklogo" />
+
+        <EditText
+            android:id="@+id/editViewUserName"
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:ems="10"
+            android:hint="Enter user Name"
+            android:textSize="21sp" />
+
+        <EditText
+            android:id="@+id/editTextTextEmailAddress"
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:ems="10"
+            android:hint="Enter Email Address"
+            android:inputType="textEmailAddress"
+            android:textSize="21sp" />
+
+        <EditText
+            android:id="@+id/editTextTextPassword"
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:ems="10"
+            android:hint="Enter Password"
+            android:inputType="textPassword"
+            android:textSize="21sp" />
+
+        <TextView
+            android:id="@+id/tvAlreadyHaveAccount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:layout_marginTop="8dp"
+            android:gravity="right"
+            android:text="Already Have an Account"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnSignUp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="SignUp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:padding="5dp">
+
+            <Button
+                android:id="@+id/btnFaceBook"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="5dp"
+                android:layout_weight="1"
+                android:text="FaceBook"
+                app:icon="@drawable/facebook"
+                app:iconTint="@null" />
+
+            <Button
+                android:id="@+id/btnGoogle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Google"
+                android:textColor="#040404"
+                app:icon="@drawable/google"
+                app:iconTint="@null" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvSignUpWithPhone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:gravity="center"
+            android:text="Signup with Phone"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</LinearLayout>

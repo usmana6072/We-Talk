@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainStatusImageView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ProfileViewActivity"
+    android:background="@color/whatsAppColor">
+
+    <ImageView
+        android:id="@+id/backArrowProfileActivity"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="30dp"
+        app:srcCompat="@drawable/backarrow"
+        app:tint="@color/white"
+        android:layout_alignParentStart="true"/>
+
+
+    <LinearLayout
+        android:id="@+id/firstLinear"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/backArrowProfileActivity"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/profileimage"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:padding="5dp"
+            android:src="@drawable/avatar"
+            app:civ_border_color="@color/black"
+            app:civ_border_width="2dp" />
+
+        <TextView
+            android:id="@+id/tvUserName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/tv_profile_view_bg"
+            android:gravity="center"
+            android:padding="5dp"
+            android:text="TextView"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:maxWidth="200dp"/>
+
+        <TextView
+            android:id="@+id/tvAbout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/tv_profile_view_bg"
+            android:gravity="center"
+            android:inputType="text|textImeMultiLine|textMultiLine"
+            android:padding="5dp"
+            android:text="No about added by user"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:maxWidth="200dp"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/firstLinear"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/setting_options_bg"
+        android:orientation="vertical"></LinearLayout>
+
+</RelativeLayout>
