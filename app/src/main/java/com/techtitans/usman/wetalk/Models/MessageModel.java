@@ -5,6 +5,15 @@ public class MessageModel {
     long messageTime;
 
     String messageId;
+    String receiverId;
+
+    public MessageModel(String userId, String receiverId, String messageText, long messageTime, String messageId) {
+        this.userId = userId;
+        this.receiverId = receiverId;
+        this.messageText = messageText;
+        this.messageTime = messageTime;
+        this.messageId = messageId;
+    }
 
     public MessageModel(String userId, String messageText, long messageTime, String messageId) {
         this.userId = userId;
@@ -56,5 +65,13 @@ public class MessageModel {
 
     public void setMessageId(String messageId) {
         this.messageId = messageId;
+    }
+
+    public String getReceiverId() {
+        return receiverId;
+    }
+
+    public void setReceiverId(String receiverId) {
+        this.receiverId = receiverId;
     }
 }

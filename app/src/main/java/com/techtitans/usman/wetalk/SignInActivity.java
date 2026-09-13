@@ -4,6 +4,7 @@ import android.app.ComponentCaller;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -26,7 +27,9 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.techtitans.usman.wetalk.Models.Users;
 import com.techtitans.usman.wetalk.databinding.ActivitySignInBinding;
 
@@ -65,6 +68,7 @@ public class SignInActivity extends AppCompatActivity {
                 public void onComplete(@NonNull Task<AuthResult> task) {
                     progressDialog.dismiss();
                     if(task.isSuccessful()){
+                        storeFCMToken();
                         updateUI();
                     }else
                         Toast.makeText(SignInActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
@@ -116,6 +120,7 @@ public class SignInActivity extends AppCompatActivity {
                     users.setMail(user.getEmail());
                     users.setUserName(user.getDisplayName());
                     database.getReference().child("Users").child(user.getUid()).setValue(users);
+                    storeFCMToken();
                     updateUI();
                 }
                 else
@@ -132,4 +137,21 @@ public class SignInActivity extends AppCompatActivity {
             startActivity(intent);
         }
     }
+    private void storeFCMToken() {
+        String id=FirebaseAuth.getInstance().getUid();
+        if(id==null)
+            return;
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        return;
+                    }
+                    String token = task.getResult();
+                    DatabaseReference reference=database.getReference().child("FCM").child(id).child(token);
+                    reference.setValue(token);
+
+                    Log.d("FCM_TOKEN", token);
+                });
+    }
+
 }

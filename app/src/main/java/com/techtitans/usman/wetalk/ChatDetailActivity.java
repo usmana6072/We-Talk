@@ -75,6 +75,7 @@ public class ChatDetailActivity extends AppCompatActivity {
             if(!message.isEmpty()){
                 model=new MessageModel(senderId,message);
                 model.setMessageTime(new Date().getTime());
+                model.setReceiverId(receiverId);
                 binding.tvMessage.setText("");
 
                 //saving message to sender chat room
