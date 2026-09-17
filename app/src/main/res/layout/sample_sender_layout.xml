@@ -1,61 +1,156 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:paddingStart="8dp"
+    android:paddingTop="3dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="3dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="7dp"
-        android:layout_marginLeft="7dp"
-        android:layout_marginEnd="7dp"
-        android:layout_marginRight="7dp"
-        android:maxHeight="400dp"
-        android:maxWidth="310dp"
-        android:minHeight="30dp"
-        android:layout_marginTop="5dp"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:background="@drawable/bg_senderchat">
+        android:background="@drawable/bg_senderchat"
+        android:elevation="1dp"
+        android:maxWidth="280dp"
+        android:minWidth="80dp"
+        android:paddingStart="8dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="6dp">
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline8"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_end="31dp" />
+            app:layout_constraintGuide_end="0dp" />
+
+        <FrameLayout
+            android:id="@+id/mediaContainer"
+            android:layout_width="220dp"
+            android:layout_height="160dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@+id/guideline8"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/imageMediaPreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Media Preview"
+                android:scaleType="centerCrop" />
+
+            <ImageView
+                android:id="@+id/playIconOverlay"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:background="#66000000"
+                android:padding="10dp"
+                android:src="@drawable/videocall"
+                android:visibility="gone"
+                app:tint="@color/white" />
+
+            <ImageView
+                android:id="@+id/downloadIconOverlay"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:background="@drawable/round_bg"
+                android:padding="10dp"
+                android:src="@drawable/ic_download"
+                android:visibility="gone"
+                app:tint="@color/white" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/documentContainer"
+            android:layout_width="220dp"
+            android:layout_height="wrap_content"
+            android:background="#15000000"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@+id/guideline8"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/mediaContainer">
+
+            <ImageView
+                android:id="@+id/docIcon"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/aboutusicon"
+                app:tint="@color/whatsAppColor" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvDocName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="middle"
+                    android:maxLines="1"
+                    android:textColor="#111B21"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    tools:text="Document.pdf" />
+
+                <TextView
+                    android:id="@+id/tvDocSize"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#667781"
+                    android:textSize="12sp"
+                    tools:text="2.5 MB" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/docDownloadIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="6dp"
+                android:src="@drawable/ic_download"
+                app:tint="@color/whatsAppColor" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/senderText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="8dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
-            android:inputType="text|textMultiLine"
-            android:maxWidth="270dp"
-            android:minWidth="50dp"
-            android:text="TextView"
-            android:textSize="16sp"
+            android:maxWidth="260dp"
+            android:minWidth="40dp"
+            android:textColor="#111B21"
+            android:textSize="15sp"
             app:layout_constraintBottom_toTopOf="@+id/senderTime"
             app:layout_constraintEnd_toStartOf="@+id/guideline8"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.45" />
+            app:layout_constraintTop_toBottomOf="@+id/documentContainer"
+            tools:text="Hello, how are you?" />
 
         <TextView
             android:id="@+id/senderTime"
             android:layout_width="wrap_content"
-            android:layout_height="24dp"
-            android:layout_marginRight="4dp"
-            android:layout_marginBottom="4dp"
-
-            android:text="12:00pm"
-            android:textSize="12sp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#667781"
+            android:textSize="11sp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/guideline8" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/senderText"
+            tools:text="12:00 pm" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

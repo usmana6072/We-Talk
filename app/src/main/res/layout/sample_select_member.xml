@@ -10,14 +10,14 @@
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="16dp"
-    android:paddingTop="10dp"
+    android:paddingTop="8dp"
     android:paddingEnd="16dp"
-    android:paddingBottom="10dp">
+    android:paddingBottom="8dp">
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/profileimage"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:src="@drawable/avatar"
         app:civ_border_color="#E0E0E0"
         app:civ_border_width="0.5dp" />
@@ -41,15 +41,22 @@
             tools:text="User Name" />
 
         <TextView
-            android:id="@+id/tvLastMessage"
+            android:id="@+id/tvAbout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="#667781"
-            android:textSize="14sp"
-            tools:text="Last Message" />
+            android:textSize="13sp"
+            tools:text="Hey there! I am using WeTalk." />
     </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:focusable="false" />
 
 </LinearLayout>

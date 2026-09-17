@@ -1,7 +1,18 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Base dark application theme -->
     <style name="Base.Theme.WeTalk" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- Brand Colors for Dark Mode -->
+        <item name="colorPrimary">#00A884</item>
+        <item name="colorPrimaryVariant">#008069</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#00A884</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+
+        <!-- System Bar Colors -->
+        <item name="android:statusBarColor">#111B21</item>
+        <item name="android:navigationBarColor">#111B21</item>
+
+        <!-- Window Background -->
+        <item name="android:windowBackground">#111B21</item>
     </style>
 </resources>

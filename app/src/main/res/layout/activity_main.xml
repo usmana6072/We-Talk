@@ -5,39 +5,38 @@
     android:id="@+id/mainStatusImageView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
+    android:background="@color/whatsAppColor"
+    android:fitsSystemWindows="true"
     android:orientation="vertical"
-    android:background="@color/whatsAppColor">
+    tools:context=".MainActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="?attr/actionBarSize"
         android:background="@color/whatsAppColor"
-        android:minHeight="56dp"
-        android:theme="?attr/actionBarTheme"
-        android:layout_marginTop="20dp"/>
+        android:elevation="4dp"
+        app:titleTextColor="@color/white" />
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:contentDescription="none"
-        app:tabIndicatorColor="@color/white"
-        app:tabSelectedTextColor="@color/white"
-        android:elevation="12dp"
-        app:tabMaxWidth="0dp"
-        app:tabGravity="fill"
-        app:tabMode="fixed"
         android:background="@color/whatsAppColor"
-        app:tabTextColor="@color/lightgreen"
-        />
+        android:elevation="4dp"
+        app:tabGravity="fill"
+        app:tabIndicatorColor="@color/white"
+        app:tabIndicatorHeight="3dp"
+        app:tabMaxWidth="0dp"
+        app:tabMode="fixed"
+        app:tabRippleColor="#22FFFFFF"
+        app:tabSelectedTextColor="@color/white"
+        app:tabTextColor="#B2FFFFFF" />
 
     <androidx.viewpager.widget.ViewPager
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="none"
-        />
+        android:background="@color/white" />
 
 </LinearLayout>

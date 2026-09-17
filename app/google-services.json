@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "192609588700-mpeg0i1fbj55enc10519i409deojf580.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.techtitans.usman.wetalk",
+            "certificate_hash": "b64bbe6e60fc81afa5604cffd14fb4aa944b8681"
+          }
+        },
+        {
           "client_id": "192609588700-uogfjpst4n7f0dpli286tbgtb141nalv.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

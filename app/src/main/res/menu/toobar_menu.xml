@@ -6,8 +6,12 @@
         android:title="Setting" />
 
     <item
+        android:id="@+id/createGroupItem"
+        android:title="Create Group" />
+
+    <item
         android:id="@+id/groupChatItem"
-        android:title="Group Chat" />
+        android:title="Global Group Chat" />
 
     <item
         android:id="@+id/logoutItem"

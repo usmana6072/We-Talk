@@ -1,8 +1,19 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Base application theme using Material 3 -->
     <style name="Base.Theme.WeTalk" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Brand Colors -->
+        <item name="colorPrimary">@color/whatsAppColor</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/colorAccent</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- System Bar Colors -->
+        <item name="android:statusBarColor">@color/whatsAppColor</item>
+        <item name="android:navigationBarColor">@color/white</item>
+
+        <!-- Surface and Window Backgrounds -->
+        <item name="android:windowBackground">@color/grayBackground</item>
     </style>
 
     <style name="Theme.WeTalk" parent="Base.Theme.WeTalk" />

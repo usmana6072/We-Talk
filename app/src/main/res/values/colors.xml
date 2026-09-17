@@ -1,14 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#fff</color>
-    <color name="lightGrey">#EDEDED</color>
-    <color name="whatsAppColor">#0b6156</color>
-    <color name="red">#9F0B0B</color>
-    <color name="status_background">#009688</color>
-    <color name="chat_background">#8B997F</color>
-    <color name="fb_color">#3c5793</color>
-    <color name="lightgreen">#e5ffcc</color>
-    <color name="settingsIconColor">#0E8374</color>
-    <color name="grayBackground">#BCBCBC</color>
+    <!-- Primary Palette (Deep Teal & Vibrant Emerald - Trust, Calm, Security) -->
+    <color name="whatsAppColor">#008069</color>
+    <color name="colorPrimaryDark">#006654</color>
+    <color name="colorAccent">#00A884</color>
+    <color name="settingsIconColor">#008069</color>
+
+    <!-- Neutral Surfaces & Backgrounds -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#111B21</color>
+    <color name="grayBackground">#F0F2F5</color>
+    <color name="lightGrey">#F7F8FA</color>
+    <color name="chat_background">#EFEAE2</color>
+    <color name="status_background">#008069</color>
+
+    <!-- Chat Message Bubbles (Warm Mint for Sent, Pure White for Received) -->
+    <color name="lightgreen">#D9FDD3</color>
+    <color name="bubble_sent">#D9FDD3</color>
+    <color name="bubble_received">#FFFFFF</color>
+
+    <!-- Typography Hierarchy (Near-Black for high contrast without glare) -->
+    <color name="text_primary">#111B21</color>
+    <color name="text_secondary">#667781</color>
+    <color name="text_muted">#8696A0</color>
+
+    <!-- Status & Functional Accents -->
+    <color name="red">#E53935</color>
+    <color name="fb_color">#1877F2</color>
+    <color name="google_blue">#4285F4</color>
+    <color name="online_green">#00C853</color>
 </resources>

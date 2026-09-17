@@ -53,7 +53,7 @@ public class SignInActivity extends AppCompatActivity {
         database=FirebaseDatabase.getInstance();
 
         gso=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
+                .requestIdToken(getString(R.string.default_web_client_id).trim()).requestEmail().build();
         mGoogleSignInClient= GoogleSignIn.getClient(this,gso);
 
         updateUI();
@@ -112,19 +112,31 @@ public class SignInActivity extends AppCompatActivity {
         auth.signInWithCredential(authCredential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
-                progressDialog.dismiss();
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
                 if(task.isSuccessful()){
                     FirebaseUser user=auth.getCurrentUser();
-                    Users users=new Users();
-                    users.setProfilePic(user.getPhotoUrl().toString());
-                    users.setMail(user.getEmail());
-                    users.setUserName(user.getDisplayName());
-                    database.getReference().child("Users").child(user.getUid()).setValue(users);
+                    if (user != null) {
+                        Users users=new Users();
+                        String photoUrl = (user.getPhotoUrl() != null) ? user.getPhotoUrl().toString() : "";
+                        String email = (user.getEmail() != null) ? user.getEmail() : "";
+                        String name = (user.getDisplayName() != null) ? user.getDisplayName() : "User";
+
+                        users.setProfilePic(photoUrl);
+                        users.setMail(email);
+                        users.setUserName(name);
+                        users.setUserId(user.getUid());
+
+                        database.getReference().child("Users").child(user.getUid()).setValue(users);
+                    }
                     storeFCMToken();
                     updateUI();
                 }
-                else
-                    Toast.makeText(SignInActivity.this,task.getException().getMessage(),Toast.LENGTH_SHORT);
+                else {
+                    String msg = (task.getException() != null) ? task.getException().getMessage() : "Authentication failed";
+                    Toast.makeText(SignInActivity.this, msg, Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

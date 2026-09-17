@@ -3,8 +3,26 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="image/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="video/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="*/*" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -15,6 +33,18 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.WeTalk">
+
+        <activity
+            android:name=".GroupInfoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CreateGroupActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MediaPreviewActivityV2"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <activity
             android:name=".StatusViewActivity"
             android:exported="false" />
@@ -52,6 +82,7 @@
         <meta-data
             android:name="CLOUDINARY_URL"
             android:value="cloudinary:// 385755796768381:0I-6iNQBkNMrYq6LlKTsiKZ5ag8@dyfjjuzkv" />
+
         <service
             android:name=".MyFirebaseMessagingService"
             android:exported="false">
@@ -59,6 +90,16 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/backup_rules" />
+        </provider>
     </application>
 
 </manifest>

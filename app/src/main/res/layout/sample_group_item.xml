@@ -15,7 +15,7 @@
     android:paddingBottom="10dp">
 
     <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/profileimage"
+        android:id="@+id/groupIcon"
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:src="@drawable/avatar"
@@ -30,7 +30,7 @@
         android:orientation="vertical">
 
         <TextView
-            android:id="@+id/tvUserName"
+            android:id="@+id/tvGroupName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
@@ -38,10 +38,10 @@
             android:textColor="#111B21"
             android:textSize="16sp"
             android:textStyle="bold"
-            tools:text="User Name" />
+            tools:text="Team Titans" />
 
         <TextView
-            android:id="@+id/tvLastMessage"
+            android:id="@+id/tvGroupDesc"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="3dp"
@@ -49,7 +49,7 @@
             android:maxLines="1"
             android:textColor="#667781"
             android:textSize="14sp"
-            tools:text="Last Message" />
+            tools:text="Group description goes here..." />
     </LinearLayout>
 
 </LinearLayout>

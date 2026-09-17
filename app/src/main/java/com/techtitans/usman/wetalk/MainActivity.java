@@ -41,11 +41,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initConfig() {
-        Map<String, String> config = new HashMap<>();
-        config.put("cloud_name", "dyfjjuzkv");
-        config.put("api_key","385755796768381");
-        config.put("api_secret","0I-6iNQBkNMrYq6LlKTsiKZ5ag8");
-        MediaManager.init(this, config);
+        try {
+            Map<String, String> config = new HashMap<>();
+            config.put("cloud_name", "dyfjjuzkv");
+            config.put("api_key", "385755796768381");
+            config.put("api_secret", "0I-6iNQBkNMrYq6LlKTsiKZ5ag8");
+            MediaManager.init(this, config);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -69,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
         } else if (item.getItemId()==R.id.groupChatItem) {
             Intent intent=new Intent(MainActivity.this, GroupChatActivity.class);
            startActivity(intent);
+        } else if (item.getItemId()==R.id.createGroupItem) {
+            Intent intent=new Intent(MainActivity.this, CreateGroupActivity.class);
+            startActivity(intent);
         }
         return true;
     }

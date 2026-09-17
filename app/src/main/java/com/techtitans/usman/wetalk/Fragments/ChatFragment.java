@@ -66,15 +66,20 @@ public class ChatFragment extends Fragment {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 list.clear();
+                receiverIdList.clear(); // Fix: Clear duplicate tracker
                 for(DataSnapshot snapshot1:snapshot.getChildren()){
                     Users users=snapshot1.getValue(Users.class);
+                    if (users == null) continue;
                     users.setUserId(snapshot1.getKey());
-                    database.getReference().child("Chats").child(""+FirebaseAuth.getInstance().getUid()+users.getUserId())
-                            .addValueEventListener(new ValueEventListener() {
+                    
+                    // Check if a chat room exists for this user
+                    database.getReference().child("Chats").child(FirebaseAuth.getInstance().getUid() + users.getUserId())
+                            .addListenerForSingleValueEvent(new ValueEventListener() { // Fix: Use SingleValueEvent to avoid persistent duplicate triggers
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot snapshot2) {
                                     if(snapshot2.exists()){
                                         if(!receiverIdList.contains(users.getUserId())) {
+                                            receiverIdList.add(users.getUserId());
                                             list.add(users);
                                             list.sort(null);
                                             adapter.notifyDataSetChanged();
@@ -83,17 +88,13 @@ public class ChatFragment extends Fragment {
                                 }
 
                                 @Override
-                                public void onCancelled(@NonNull DatabaseError error) {
-
-                                }
+                                public void onCancelled(@NonNull DatabaseError error) {}
                             });
                 }
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
+            public void onCancelled(@NonNull DatabaseError error) {}
         };
 //        chatListener=new ValueEventListener() {
 //            @Override

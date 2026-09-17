@@ -8,6 +8,7 @@ import androidx.fragment.app.FragmentPagerAdapter;
 
 import com.techtitans.usman.wetalk.Fragments.CallsFragment;
 import com.techtitans.usman.wetalk.Fragments.ChatFragment;
+import com.techtitans.usman.wetalk.Fragments.GroupFragment;
 import com.techtitans.usman.wetalk.Fragments.StatusFragment;
 
 public class FragmentAdapter extends FragmentPagerAdapter {
@@ -26,15 +27,16 @@ public class FragmentAdapter extends FragmentPagerAdapter {
     public Fragment getItem(int position) {
         switch (position){
             case 0:return new ChatFragment();
-            case 1:return new StatusFragment();
-            case 2:return new CallsFragment();
+            case 1:return new GroupFragment();
+            case 2:return new StatusFragment();
+            case 3:return new CallsFragment();
         }
         return new ChatFragment();
     }
 
     @Override
     public int getCount() {
-        return 3;
+        return 4;
     }
 
     @Nullable
@@ -42,8 +44,9 @@ public class FragmentAdapter extends FragmentPagerAdapter {
     public CharSequence getPageTitle(int position) {
         switch (position){
             case 0:return "Chats";
-            case 1:return "Status";
-            case 2:return "Calls";
+            case 1:return "Groups";
+            case 2:return "Status";
+            case 3:return "Calls";
         }
         return "Chats";
     }
