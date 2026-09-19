@@ -49,6 +49,8 @@ public class StatusFragment extends Fragment {
     }
 
     FragmentStatusBinding binding;
+    private static final long STATUS_EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -68,8 +70,19 @@ public class StatusFragment extends Fragment {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 myStatus.clear();
-                if(snapshot.child("status").exists())
-                    myStatus.add(snapshot.child("status").getValue(StatusModel.class));
+                if(snapshot.child("status").exists()) {
+                    StatusModel statusModel = snapshot.child("status").getValue(StatusModel.class);
+                    if (statusModel != null) {
+                        if (System.currentTimeMillis() - statusModel.getTimeStamp() < STATUS_EXPIRATION_TIME) {
+                            myStatus.add(statusModel);
+                        } else {
+                            // Automatically delete expired status from database
+                            database.getReference().child("Users").child(auth.getUid()).child("status").removeValue();
+
+
+                        }
+                    }
+                }
                 myStatusAdapter.notifyDataSetChanged();
             }
 
@@ -83,11 +96,22 @@ public class StatusFragment extends Fragment {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 othersStatus.clear();
+                long currentTime = System.currentTimeMillis();
                 for(DataSnapshot snapshot1:snapshot.getChildren()){
-                    if(snapshot1.getKey().equals(auth.getUid()))
+                    String uid = snapshot1.getKey();
+                    if(uid != null && uid.equals(auth.getUid()))
                         continue;
+                        
                     if(snapshot1.child("status").exists()){
-                        othersStatus.add(snapshot1.child("status").getValue(StatusModel.class));
+                        StatusModel statusModel = snapshot1.child("status").getValue(StatusModel.class);
+                        if (statusModel != null) {
+                            if (currentTime - statusModel.getTimeStamp() < STATUS_EXPIRATION_TIME) {
+                                othersStatus.add(statusModel);
+                            } else if (uid != null) {
+                                // Automatically delete expired status of other users from database when viewed
+                                database.getReference().child("Users").child(uid).child("status").removeValue();
+                            }
+                        }
                     }
                 }
                 otherStatusAdapter.notifyDataSetChanged();
@@ -123,33 +147,4 @@ public class StatusFragment extends Fragment {
 
                         }
 
-                        @Override
-                        public void onProgress(String requestId, long bytes, long totalBytes) {
-
-                        }
-
-                        @Override
-                        public void onSuccess(String requestId, Map resultData) {
-                            String url=resultData.get("secure_url").toString();
-                            StatusModel status=new StatusModel(auth.getUid(),auth.getCurrentUser().getDisplayName(),url,new Date().getTime());
-                            database.getReference().child("Users").child(auth.getUid()).child("status").setValue(status).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void unused) {
-                                    Toast.makeText(getContext(), "Status added successfully", Toast.LENGTH_SHORT).show();
-                                }
-                            });
-                        }
-
-                        @Override
-                        public void onError(String requestId, ErrorInfo error) {
-
-                        }
-
-                        @Override
-                        public void onReschedule(String requestId, ErrorInfo error) {
-
-                        }
-                    }).dispatch();
-        }
-    }
-}
+        
