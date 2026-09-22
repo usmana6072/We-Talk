@@ -1,38 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="32dp"
     tools:context=".Fragments.CallsFragment">
 
-    <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:contentDescription="Calls"
-        android:src="@drawable/voicecall"
-        app:tint="#8696A0" />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewCalls"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="No recent calls"
-        android:textColor="#111B21"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+    <LinearLayout
+        android:id="@+id/layoutEmptyCalls"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:gravity="center"
-        android:text="Voice and video calls with your contacts will appear here."
-        android:textColor="#667781"
-        android:textSize="14sp" />
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone"
+        tools:visibility="visible">
 
-</LinearLayout>
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:contentDescription="Calls"
+            android:src="@drawable/voicecall"
+            app:tint="#8696A0" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="No recent calls"
+            android:textColor="#111B21"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="Voice and video calls with your contacts will appear here."
+            android:textColor="#667781"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+</FrameLayout>

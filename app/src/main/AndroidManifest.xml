@@ -3,11 +3,21 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <queries>
         <intent>
@@ -44,7 +54,6 @@
             android:name=".MediaPreviewActivityV2"
             android:exported="false"
             android:screenOrientation="portrait" />
-
         <activity
             android:name=".StatusViewActivity"
             android:exported="false" />
@@ -68,7 +77,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -79,15 +87,25 @@
             android:name=".MainActivity"
             android:exported="true" />
 
+        <activity
+            android:name=".Calls.IncomingCallActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".Calls.CallActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <meta-data
             android:name="CLOUDINARY_URL"
             android:value="cloudinary:// 385755796768381:0I-6iNQBkNMrYq6LlKTsiKZ5ag8@dyfjjuzkv" />
 
         <service
-            android:name=".MyFirebaseMessagingService"
+            android:name=".Services.MyFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
 
@@ -100,6 +118,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/backup_rules" />
         </provider>
+
     </application>
 
 </manifest>

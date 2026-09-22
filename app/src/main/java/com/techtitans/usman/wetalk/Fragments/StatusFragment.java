@@ -78,8 +78,6 @@ public class StatusFragment extends Fragment {
                         } else {
                             // Automatically delete expired status from database
                             database.getReference().child("Users").child(auth.getUid()).child("status").removeValue();
-
-
                         }
                     }
                 }
@@ -147,4 +145,33 @@ public class StatusFragment extends Fragment {
 
                         }
 
-        
+                        @Override
+                        public void onProgress(String requestId, long bytes, long totalBytes) {
+
+                        }
+
+                        @Override
+                        public void onSuccess(String requestId, Map resultData) {
+                            String url=resultData.get("secure_url").toString();
+                            StatusModel status=new StatusModel(auth.getUid(),auth.getCurrentUser().getDisplayName(),url,new Date().getTime());
+                            database.getReference().child("Users").child(auth.getUid()).child("status").setValue(status).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void unused) {
+                                    Toast.makeText(getContext(), "Status added successfully", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onError(String requestId, ErrorInfo error) {
+
+                        }
+
+                        @Override
+                        public void onReschedule(String requestId, ErrorInfo error) {
+
+                        }
+                    }).dispatch();
+        }
+    }
+}

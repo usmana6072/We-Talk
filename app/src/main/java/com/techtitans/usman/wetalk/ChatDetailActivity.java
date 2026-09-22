@@ -31,7 +31,7 @@ import androidx.core.content.ContextCompat;
 import com.cloudinary.android.MediaManager;
 import com.cloudinary.android.callback.ErrorInfo;
 import com.cloudinary.android.callback.UploadCallback;
-import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -40,12 +40,30 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 import com.techtitans.usman.wetalk.Adapters.ChatAdapter;
+import com.techtitans.usman.wetalk.Calls.CallActivity;
+import com.techtitans.usman.wetalk.Calls.CallHistoryHelper;
+import com.techtitans.usman.wetalk.Interfaces.ApiService;
 import com.techtitans.usman.wetalk.Models.MessageModel;
+import com.techtitans.usman.wetalk.Services.AgoraTokenFetcher;
+import com.techtitans.usman.wetalk.Services.FcmAccessTokenManager;
+import com.techtitans.usman.wetalk.Services.NotificationSender;
 import com.techtitans.usman.wetalk.databinding.ActivityChatDetailBinding;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+
+import android.util.Log;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ChatDetailActivity extends AppCompatActivity {
 
@@ -65,7 +83,7 @@ public class ChatDetailActivity extends AppCompatActivity {
 
     ArrayList<MessageModel> list = new ArrayList<>();
     ChatAdapter adapter;
-    ProgressDialog progressDialog;
+    ApiService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,10 +98,31 @@ public class ChatDetailActivity extends AppCompatActivity {
         receiverId = getIntent().getStringExtra("userId");
         receiverProfile = getIntent().getStringExtra("profile");
         receiverUserName = getIntent().getStringExtra("username");
+
+        if (senderId == null || receiverId == null || receiverId.trim().isEmpty()) {
+            Toast.makeText(this, "Invalid user", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        if (receiverUserName == null || receiverUserName.trim().isEmpty()) {
+            receiverUserName = "User";
+        }
+
         adapter = new ChatAdapter(list, ChatDetailActivity.this, receiverId);
 
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://fcm.googleapis.com/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        apiService = retrofit.create(ApiService.class);
+
         binding.tvUserNameChatDetails.setText(receiverUserName);
-        Picasso.get().load(receiverProfile).placeholder(R.drawable.avatar).into(binding.profileimage);
+        if (receiverProfile != null && !receiverProfile.trim().isEmpty()) {
+            Picasso.get().load(receiverProfile).placeholder(R.drawable.avatar).error(R.drawable.avatar).into(binding.profileimage);
+        } else {
+            binding.profileimage.setImageResource(R.drawable.avatar);
+        }
 
         binding.backArrow.setOnClickListener(e -> finish());
 
@@ -92,11 +131,6 @@ public class ChatDetailActivity extends AppCompatActivity {
 
         binding.recyclerViewChatDetails.setAdapter(adapter);
         binding.recyclerViewChatDetails.setLayoutManager(new LinearLayoutManager(this));
-
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setTitle("Uploading Attachment");
-        progressDialog.setMessage("Please wait while file is uploading...");
-        progressDialog.setCancelable(false);
 
         binding.imageViewSend.setOnClickListener(e -> {
             String message = binding.tvMessage.getText().toString();
@@ -126,6 +160,9 @@ public class ChatDetailActivity extends AppCompatActivity {
                     database.getReference().child("Chats").child(receiverRoom).child(model.getMessageId())
                             .setValue(model);
                 }
+
+                // Send Notification
+                sendPushNotification(receiverId, "New Message from " + auth.getCurrentUser().getDisplayName(), message, "message", null);
             } else {
                 Toast.makeText(this, "Please Type a Message", Toast.LENGTH_SHORT).show();
             }
@@ -172,8 +209,10 @@ public class ChatDetailActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.registerReceiver(this, onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_EXPORTED);
         } else {
-            registerReceiver(onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+            ContextCompat.registerReceiver(this, onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_EXPORTED);
         }
+        binding.videoCall.setOnClickListener(e -> launchCallScreen(true));
+        binding.voiceCall.setOnClickListener(e-> launchCallScreen(false));
     }
 
     private final BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
@@ -329,6 +368,9 @@ public class ChatDetailActivity extends AppCompatActivity {
                         }
 
                         Toast.makeText(ChatDetailActivity.this, "Attachment sent successfully", Toast.LENGTH_SHORT).show();
+                        
+                        // Send Notification for Attachment
+                        sendPushNotification(receiverId, "New Attachment from " + auth.getCurrentUser().getDisplayName(), "Sent a " + type, "message", null);
                     }
 
                     private void copyFileToLocal(Uri srcUri, File destFile) {
@@ -353,6 +395,150 @@ public class ChatDetailActivity extends AppCompatActivity {
                     public void onReschedule(String requestId, ErrorInfo error) {
                     }
                 }).dispatch();
+    }
+
+    private void launchCallScreen(boolean isVideo) {
+        ProgressDialog callDialog = new ProgressDialog(this);
+        callDialog.setMessage("Preparing call...");
+        callDialog.setCancelable(false);
+        callDialog.show();
+
+        String channelId = (senderId.compareTo(receiverId) < 0)
+                ? senderId + "_" + receiverId
+                : receiverId + "_" + senderId;
+
+        // Fetch valid Token from Railway server
+        AgoraTokenFetcher.fetchToken(channelId, new AgoraTokenFetcher.TokenCallback() {
+            @Override
+            public void onSuccess(String token) {
+                callDialog.dismiss();
+                initiateCallWithToken(channelId, token, isVideo);
+            }
+
+            @Override
+            public void onError(String error) {
+                callDialog.dismiss();
+                Toast.makeText(ChatDetailActivity.this, "Failed to get token: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void initiateCallWithToken(String channelId, String token, boolean isVideo) {
+        // Signaling: Push call request to receiver's node
+        HashMap<String, Object> callRequest = new HashMap<>();
+        callRequest.put("callerId", senderId);
+        callRequest.put("callerName", auth.getCurrentUser().getDisplayName() != null ? auth.getCurrentUser().getDisplayName() : "Someone");
+        callRequest.put("callerIcon", auth.getCurrentUser().getPhotoUrl() != null ? auth.getCurrentUser().getPhotoUrl().toString() : "");
+        callRequest.put("channelName", channelId);
+        callRequest.put("token", token); 
+        callRequest.put("isVideoCall", isVideo);
+        callRequest.put("isGroupCall", false);
+        callRequest.put("status", "ringing");
+
+        database.getReference().child("Calls").child(receiverId).setValue(callRequest);
+
+        // Send FCM Notification for Background Waking
+        try {
+            JSONObject callData = new JSONObject();
+            callData.put("callerId", senderId);
+            callData.put("callerName", auth.getCurrentUser().getDisplayName());
+            callData.put("callerIcon", auth.getCurrentUser().getPhotoUrl() != null ? auth.getCurrentUser().getPhotoUrl().toString() : "");
+            callData.put("channelName", channelId);
+            callData.put("token", token);
+            callData.put("isVideoCall", String.valueOf(isVideo));
+            callData.put("isGroupCall", "false");
+            callData.put("type", "call"); 
+            
+            sendPushNotification(receiverId, "Incoming Call", "Someone is calling you...", "call", callData);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Log Call History for caller and receiver
+        String currentUserName = (auth.getCurrentUser() != null && auth.getCurrentUser().getDisplayName() != null)
+                ? auth.getCurrentUser().getDisplayName() : "Someone";
+        String currentUserPic = (auth.getCurrentUser() != null && auth.getCurrentUser().getPhotoUrl() != null)
+                ? auth.getCurrentUser().getPhotoUrl().toString() : "";
+        String callTypeStr = isVideo ? "video" : "audio";
+
+        CallHistoryHelper.logCall(senderId, receiverId, receiverUserName, receiverProfile, callTypeStr, "outgoing", false);
+        CallHistoryHelper.logCall(receiverId, senderId, currentUserName, currentUserPic, callTypeStr, "incoming", false);
+
+        Intent intent = new Intent(ChatDetailActivity.this, CallActivity.class);
+        intent.putExtra("channelName", channelId);
+        intent.putExtra("token", token);
+        intent.putExtra("isVideoCall", isVideo);
+        intent.putExtra("isGroupCall", false);
+        intent.putExtra("receiverId", receiverId);
+        intent.putExtra("participantName", receiverUserName);
+        intent.putExtra("participantIcon", receiverProfile);
+        startActivity(intent);
+    }
+
+    private void sendPushNotification(String receiverId, String title, String message, String type, JSONObject extraData) {
+        database.getReference().child("FCM").child(receiverId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    for (DataSnapshot tokenSnapshot : snapshot.getChildren()) {
+                        String token = tokenSnapshot.getValue(String.class);
+                        if (token != null) {
+                            sendViaRetrofit(token, title, message, type, extraData);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void sendViaRetrofit(String token, String title, String message, String type, JSONObject extraData) {
+        Map<String, String> dataMap = new HashMap<>();
+        dataMap.put("title", title);
+        dataMap.put("message", message);
+        dataMap.put("type", type);
+        
+        if (extraData != null) {
+            Iterator<String> keys = extraData.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                try {
+                    dataMap.put(key, extraData.getString(key));
+                } catch (Exception ignored) {}
+            }
+        }
+
+        NotificationSender sender = new NotificationSender(token, dataMap);
+        String projectId = FirebaseApp.getInstance().getOptions().getProjectId();
+
+        FcmAccessTokenManager.getAccessToken(this, new FcmAccessTokenManager.TokenCallback() {
+            @Override
+            public void onToken(String accessToken) {
+                apiService.sendNotification(projectId, "Bearer " + accessToken, sender)
+                        .enqueue(new Callback<ResponseBody>() {
+                            @Override
+                            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                                if (response.isSuccessful()) {
+                                    Log.d("FCM_SEND", "Notification sent successfully");
+                                } else {
+                                    Log.e("FCM_SEND", "FCM failed: " + response.code());
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                                Log.e("FCM_SEND", "FCM network error", t);
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("FCM_SEND", "Token error: " + e.getMessage());
+            }
+        });
     }
 
     private FileMeta getFileMeta(Uri uri) {

@@ -5,4 +5,6 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="enter_user_name">Enter User Name</string>
     <string name="user">user</string>
+    <string name="agora_app_id">863d1af8f26c4e59815aee9fb0a9f414</string>
+    <string name="agora_app_certificate">4fd508c5c7a0487590c3f889a7088764</string>
 </resources>

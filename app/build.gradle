@@ -33,9 +33,24 @@ android {
     buildFeatures{
         viewBinding true
     }
+
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+            excludes += 'META-INF/DEPENDENCIES'
+            excludes += 'META-INF/LICENSE'
+            excludes += 'META-INF/LICENSE.txt'
+            excludes += 'META-INF/license.txt'
+            excludes += 'META-INF/NOTICE'
+            excludes += 'META-INF/NOTICE.txt'
+            excludes += 'META-INF/notice.txt'
+            excludes += 'META-INF/ASL2.0'
+        }
+    }
 }
 
 dependencies {
+    implementation libs.activity.ktx
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
@@ -64,4 +79,13 @@ dependencies {
     //cloudinary sdk
     implementation 'com.cloudinary:cloudinary-android:3.1.2'
     implementation 'com.cloudinary:cloudinary-core:1.38.0'
+
+    //agora for calling features
+    implementation 'io.agora.rtc:full-sdk:4.5.0'
+    implementation 'commons-codec:commons-codec:1.15'
+
+    // Retrofit & Modern FCM v1 dependencies
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.google.auth:google-auth-library-oauth2-http:1.19.0'
 }

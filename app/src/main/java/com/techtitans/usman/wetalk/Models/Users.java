@@ -1,16 +1,11 @@
 package com.techtitans.usman.wetalk.Models;
 
-import java.util.Comparator;
-
 public class Users implements Comparable<Users> {
-    String profilePic,userName,mail,password,userId,lastMessage;
-    long timeStam;
+    private String profilePic, userName, mail, password, userId, lastMessage;
+    private long timeStam;
 
-    public Users(){
-
+    public Users() {
     }
-
-    //Signup constructor
 
     public Users(String userName, String mail, String password) {
         this.userName = userName;
@@ -65,15 +60,15 @@ public class Users implements Comparable<Users> {
         return password;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getUserId() {
         return userId;
     }
 
-    public void setUserId() {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 
@@ -85,10 +80,6 @@ public class Users implements Comparable<Users> {
         this.lastMessage = lastMessage;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public long getTimeStam() {
         return timeStam;
     }
@@ -97,15 +88,9 @@ public class Users implements Comparable<Users> {
         this.timeStam = timeStam;
     }
 
-
-
     @Override
     public int compareTo(Users o) {
-        if(this.getTimeStam()>o.getTimeStam() )
-            return -1;
-        if(this.getTimeStam()<o.getTimeStam() )
-            return 1;
-        return 0;
+        if (o == null) return -1;
+        return Long.compare(o.getTimeStam(), this.getTimeStam()); // Descending: newest first
     }
 }
-

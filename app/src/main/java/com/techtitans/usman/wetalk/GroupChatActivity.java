@@ -25,7 +25,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.cloudinary.android.MediaManager;
 import com.cloudinary.android.callback.ErrorInfo;
 import com.cloudinary.android.callback.UploadCallback;
-import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -34,8 +34,16 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 import com.techtitans.usman.wetalk.Adapters.ChatAdapter;
+import com.techtitans.usman.wetalk.Calls.CallActivity;
+import com.techtitans.usman.wetalk.Calls.CallHistoryHelper;
+import com.techtitans.usman.wetalk.Interfaces.ApiService;
 import com.techtitans.usman.wetalk.Models.MessageModel;
+import com.techtitans.usman.wetalk.Services.AgoraTokenFetcher;
+import com.techtitans.usman.wetalk.Services.FcmAccessTokenManager;
+import com.techtitans.usman.wetalk.Services.NotificationSender;
 import com.techtitans.usman.wetalk.databinding.ActivityGroupChatBinding;
+
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -44,9 +52,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import android.app.DownloadManager;
+import android.util.Log;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class GroupChatActivity extends AppCompatActivity {
 
@@ -66,7 +83,7 @@ public class GroupChatActivity extends AppCompatActivity {
     ArrayList<MessageModel> messageList = new ArrayList<>();
 
     String senderId, groupId, groupName, groupIcon;
-    ProgressDialog progressDialog;
+    ApiService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +96,12 @@ public class GroupChatActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
         senderId = auth.getUid();
 
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://fcm.googleapis.com/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        apiService = retrofit.create(ApiService.class);
+
         groupId = getIntent().getStringExtra("groupId");
         groupName = getIntent().getStringExtra("groupName");
         groupIcon = getIntent().getStringExtra("groupIcon");
@@ -87,6 +110,8 @@ public class GroupChatActivity extends AppCompatActivity {
             // Global Group Chat Mode
             binding.tvUserNameChatDetails.setText("Global Group");
             binding.profileimage.setImageResource(R.drawable.avatar);
+            binding.voiceCall.setVisibility(View.GONE);
+            binding.videoCall.setVisibility(View.GONE);
         } else {
             // Private Group Chat Mode
             binding.tvUserNameChatDetails.setText(groupName != null ? groupName : "Group");
@@ -101,16 +126,14 @@ public class GroupChatActivity extends AppCompatActivity {
                 intent.putExtra("groupId", groupId);
                 startActivity(intent);
             });
+
+            binding.voiceCall.setOnClickListener(v -> startGroupCall(false));
+            binding.videoCall.setOnClickListener(v -> startGroupCall(true));
         }
 
         adapter = new ChatAdapter(messageList, this);
         binding.recyclerViewChatDetails.setAdapter(adapter);
         binding.recyclerViewChatDetails.setLayoutManager(new LinearLayoutManager(this));
-
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setTitle("Uploading");
-        progressDialog.setMessage("Please wait...");
-        progressDialog.setCancelable(false);
 
         binding.imageViewSend.setOnClickListener(e -> sendMessage(null, "text", null, 0));
         binding.imageViewAttachment.setOnClickListener(v -> showAttachmentOptions());
@@ -124,6 +147,149 @@ public class GroupChatActivity extends AppCompatActivity {
         } else {
             registerReceiver(onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
         }
+    }
+
+    private void startGroupCall(boolean isVideo) {
+        ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setMessage("Starting group call...");
+        dialog.setCancelable(false);
+        dialog.show();
+
+        String channelId = "group_" + groupId;
+
+        AgoraTokenFetcher.fetchToken(channelId, new AgoraTokenFetcher.TokenCallback() {
+            @Override
+            public void onSuccess(String token) {
+                dialog.dismiss();
+                notifyGroupMembersOfCall(channelId, token, isVideo);
+                
+                String myUid = FirebaseAuth.getInstance().getUid();
+                if (myUid != null) {
+                    CallHistoryHelper.logCall(myUid, groupId, groupName, groupIcon, isVideo ? "video" : "audio", "outgoing");
+                }
+
+                Intent intent = new Intent(GroupChatActivity.this, CallActivity.class);
+                intent.putExtra("channelName", channelId);
+                intent.putExtra("token", token);
+                intent.putExtra("isVideoCall", isVideo);
+                intent.putExtra("isGroupCall", true);
+                intent.putExtra("participantName", groupName);
+                intent.putExtra("participantIcon", groupIcon);
+                startActivity(intent);
+            }
+
+            @Override
+            public void onError(String error) {
+                dialog.dismiss();
+                Toast.makeText(GroupChatActivity.this, "Failed to start call: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void notifyGroupMembersOfCall(String channelId, String token, boolean isVideo) {
+        database.getReference().child("Groups").child(groupId).child("members").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    String memberId = ds.getKey();
+                    if (memberId != null && !memberId.equals(senderId)) {
+                        sendCallSignalToMember(memberId, channelId, token, isVideo);
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void sendCallSignalToMember(String memberId, String channelId, String token, boolean isVideo) {
+        HashMap<String, Object> callRequest = new HashMap<>();
+        callRequest.put("callerId", senderId);
+        callRequest.put("callerName", auth.getCurrentUser().getDisplayName());
+        callRequest.put("callerIcon", auth.getCurrentUser().getPhotoUrl() != null ? auth.getCurrentUser().getPhotoUrl().toString() : "");
+        callRequest.put("channelName", channelId);
+        callRequest.put("token", token);
+        callRequest.put("groupName", groupName);
+        callRequest.put("isVideoCall", isVideo);
+        callRequest.put("isGroupCall", true);
+        callRequest.put("status", "ringing");
+
+        database.getReference().child("Calls").child(memberId).setValue(callRequest);
+
+        // Also FCM for background
+        database.getReference().child("FCM").child(memberId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    try {
+                        JSONObject callData = new JSONObject();
+                        callData.put("callerId", senderId);
+                        callData.put("callerName", auth.getCurrentUser().getDisplayName());
+                        callData.put("callerIcon", auth.getCurrentUser().getPhotoUrl() != null ? auth.getCurrentUser().getPhotoUrl().toString() : "");
+                        callData.put("channelName", channelId);
+                        callData.put("token", token);
+                        callData.put("groupName", groupName);
+                        callData.put("isVideoCall", String.valueOf(isVideo));
+                        callData.put("isGroupCall", "true");
+                        callData.put("type", "call");
+
+                        for (DataSnapshot tokenSnapshot : snapshot.getChildren()) {
+                            String fcmToken = tokenSnapshot.getValue(String.class);
+                            if (fcmToken != null) {
+                                sendViaRetrofit(fcmToken, "Group Call", "Incoming call from " + groupName, "call", callData);
+                            }
+                        }
+                    } catch (Exception e) {}
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void sendViaRetrofit(String token, String title, String message, String type, JSONObject extraData) {
+        Map<String, String> dataMap = new HashMap<>();
+        dataMap.put("title", title);
+        dataMap.put("message", message);
+        dataMap.put("type", type);
+        
+        if (extraData != null) {
+            Iterator<String> keys = extraData.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                try {
+                    dataMap.put(key, extraData.getString(key));
+                } catch (Exception ignored) {}
+            }
+        }
+
+        NotificationSender sender = new NotificationSender(token, dataMap);
+        String projectId = FirebaseApp.getInstance().getOptions().getProjectId();
+
+        FcmAccessTokenManager.getAccessToken(this, new FcmAccessTokenManager.TokenCallback() {
+            @Override
+            public void onToken(String accessToken) {
+                apiService.sendNotification(projectId, "Bearer " + accessToken, sender)
+                        .enqueue(new Callback<ResponseBody>() {
+                            @Override
+                            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                                if (response.isSuccessful()) {
+                                    Log.d("FCM_SEND", "Group notification sent");
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                                Log.e("FCM_SEND", "FCM group error", t);
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("FCM_SEND", "Token error: " + e.getMessage());
+            }
+        });
     }
 
     private void loadMessages() {
@@ -293,7 +459,6 @@ public class GroupChatActivity extends AppCompatActivity {
                             temp.setMessageId("temp"); // won't match exactly but prevents download icon
                             temp.setFileName(name);
                             File localFile = ChatAdapter.getLocalFile(publicDir, ChatAdapter.getUniqueFileName(temp));
-                            // Note: real messageId isn't known yet easily here without push ref
                         } catch (Exception e) {}
                     }
                     @Override

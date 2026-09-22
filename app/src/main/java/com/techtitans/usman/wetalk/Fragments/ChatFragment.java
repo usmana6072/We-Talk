@@ -2,15 +2,14 @@ package com.techtitans.usman.wetalk.Fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -19,153 +18,172 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.techtitans.usman.wetalk.Adapters.UserAdapterChatView;
+import com.techtitans.usman.wetalk.Models.MessageModel;
 import com.techtitans.usman.wetalk.Models.Users;
 import com.techtitans.usman.wetalk.UsersListActivity;
 import com.techtitans.usman.wetalk.databinding.FragmentChatBinding;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ChatFragment extends Fragment {
+
+    private FirebaseDatabase database;
+    private FragmentChatBinding binding;
+    private ArrayList<Users> list;
+    private DatabaseReference chatsRef;
+    private ValueEventListener chatsListener;
+    private UserAdapterChatView adapter;
 
     public ChatFragment() {
         // Required empty public constructor
     }
 
-    FirebaseDatabase database;
-    FragmentChatBinding binding;
-    ArrayList<Users> list;
-    ArrayList<String> receiverIdList=new ArrayList<>();
-    DatabaseReference chatReference;
-    DatabaseReference usersRef;
-    ValueEventListener chatListener;
-    UserAdapterChatView adapter;
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        binding = FragmentChatBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding=FragmentChatBinding.inflate(inflater,container,false);
-        database=FirebaseDatabase.getInstance();
-        list=new ArrayList<>();
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
+        database = FirebaseDatabase.getInstance();
+        list = new ArrayList<>();
 
-        adapter=new UserAdapterChatView(list,getContext());
-        LinearLayoutManager linearLayoutManager=new LinearLayoutManager(getContext());
-
-        binding.recyclerViewChatFragment.setLayoutManager(linearLayoutManager);
+        adapter = new UserAdapterChatView(list, getContext());
+        binding.recyclerViewChatFragment.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recyclerViewChatFragment.setAdapter(adapter);
 
-        //loading users from firebase to the list
+        binding.addBtn.setOnClickListener(e -> {
+            Intent intent = new Intent(getContext(), UsersListActivity.class);
+            startActivity(intent);
+        });
 
-        String senderId = FirebaseAuth.getInstance().getUid();
+        setupChatsListener();
+    }
 
-        chatReference=database.getReference().child("Chats").orderByChild("messageTime").getRef();
+    private void setupChatsListener() {
+        String currentUid = FirebaseAuth.getInstance().getUid();
+        if (currentUid == null) return;
 
-        usersRef=database.getReference().child("Users").orderByChild("timeStam").getRef();
-        chatListener=new ValueEventListener() {
+        chatsRef = database.getReference().child("Chats");
+        chatsListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                list.clear();
-                receiverIdList.clear(); // Fix: Clear duplicate tracker
-                for(DataSnapshot snapshot1:snapshot.getChildren()){
-                    Users users=snapshot1.getValue(Users.class);
-                    if (users == null) continue;
-                    users.setUserId(snapshot1.getKey());
-                    
-                    // Check if a chat room exists for this user
-                    database.getReference().child("Chats").child(FirebaseAuth.getInstance().getUid() + users.getUserId())
-                            .addListenerForSingleValueEvent(new ValueEventListener() { // Fix: Use SingleValueEvent to avoid persistent duplicate triggers
-                                @Override
-                                public void onDataChange(@NonNull DataSnapshot snapshot2) {
-                                    if(snapshot2.exists()){
-                                        if(!receiverIdList.contains(users.getUserId())) {
-                                            receiverIdList.add(users.getUserId());
-                                            list.add(users);
-                                            list.sort(null);
-                                            adapter.notifyDataSetChanged();
+                if (!isAdded()) return;
+
+                Set<String> activeChatPartnerIds = new HashSet<>();
+
+                for (DataSnapshot chatRoomSnap : snapshot.getChildren()) {
+                    String roomKey = chatRoomSnap.getKey();
+                    if (roomKey != null && roomKey.startsWith(currentUid) && !roomKey.equals(currentUid)) {
+                        String otherUserId = roomKey.substring(currentUid.length());
+                        if (otherUserId.isEmpty()) continue;
+
+                        activeChatPartnerIds.add(otherUserId);
+
+                        // Extract last message in room
+                        DataSnapshot lastMsgSnap = null;
+                        for (DataSnapshot msgChild : chatRoomSnap.getChildren()) {
+                            lastMsgSnap = msgChild;
+                        }
+
+                        long lastTime = 0;
+                        String lastText = "No Chat";
+
+                        if (lastMsgSnap != null) {
+                            MessageModel model = lastMsgSnap.getValue(MessageModel.class);
+                            if (model != null) {
+                                lastTime = model.getMessageTime();
+                                String type = model.getType();
+                                if ("image".equalsIgnoreCase(type)) {
+                                    lastText = "📷 Photo";
+                                } else if ("video".equalsIgnoreCase(type)) {
+                                    lastText = "🎥 Video";
+                                } else if ("document".equalsIgnoreCase(type)) {
+                                    lastText = "📄 Document";
+                                } else {
+                                    lastText = model.getMessageText() != null ? model.getMessageText() : "";
+                                }
+                            }
+                        }
+
+                        final long finalLastTime = lastTime;
+                        final String finalLastText = lastText;
+
+                        database.getReference().child("Users").child(otherUserId)
+                                .addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot userSnap) {
+                                        if (!isAdded()) return;
+                                        Users user = userSnap.getValue(Users.class);
+                                        if (user != null) {
+                                            user.setUserId(userSnap.getKey());
+                                            user.setTimeStam(finalLastTime);
+                                            user.setLastMessage(finalLastText);
+                                            addOrUpdateUserInList(user);
                                         }
                                     }
-                                }
 
-                                @Override
-                                public void onCancelled(@NonNull DatabaseError error) {}
-                            });
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError error) {}
+                                });
+                    }
+                }
+
+                if (activeChatPartnerIds.isEmpty()) {
+                    list.clear();
+                    if (adapter != null) adapter.notifyDataSetChanged();
+                } else {
+                    list.removeIf(user -> !activeChatPartnerIds.contains(user.getUserId()));
+                    list.sort((u1, u2) -> Long.compare(u2.getTimeStam(), u1.getTimeStam()));
+                    if (adapter != null) adapter.notifyDataSetChanged();
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         };
-//        chatListener=new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//
-//                list.clear();
-//                receiverIdList.clear();
-//
-//                for (DataSnapshot chatSnapshot : snapshot.getChildren()) {
-//
-//                    String chatKey = chatSnapshot.getKey();
-//
-//                    if (chatKey.contains(senderId)) {
-//
-//                        String otherUserId =
-//                                chatKey.replace(senderId, "");
-//
-//                        if (receiverIdList.contains(otherUserId))
-//                            continue;
-//                        receiverIdList.add(otherUserId);
-//
-//                        database.getReference().child("Users")
-//                                .child(otherUserId)
-//                                .addListenerForSingleValueEvent(new ValueEventListener() {
-//                                    @Override
-//                                    public void onDataChange(@NonNull DataSnapshot userSnap) {
-//
-//                                        Users user =
-//                                                userSnap.getValue(Users.class);
-//
-//                                        if (user != null) {
-//                                            user.setUserId(userSnap.getKey());
-//                                            list.add(user);
-//                                            adapter.notifyDataSetChanged();
-//                                        }
-//                                    }
-//
-//                                    @Override
-//                                    public void onCancelled(@NonNull DatabaseError error) {
-//                                    }
-//                                });
-//                        list.sort(null);
-//                        adapter.notifyDataSetChanged();
-//                    }
-//                }
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//            }
-//        };
-        usersRef.addValueEventListener(chatListener);
 
-        binding.addBtn.setOnClickListener(e->{
-            Intent intent=new Intent(getContext(), UsersListActivity.class);
-            startActivity(intent);
-        });
+        chatsRef.addValueEventListener(chatsListener);
+    }
 
-        return binding.getRoot();
+    private synchronized void addOrUpdateUserInList(Users user) {
+        if (user == null || user.getUserId() == null) return;
+
+        int index = -1;
+        for (int i = 0; i < list.size(); i++) {
+            if (user.getUserId().equals(list.get(i).getUserId())) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index != -1) {
+            list.set(index, user);
+        } else {
+            list.add(user);
+        }
+
+        list.sort((u1, u2) -> Long.compare(u2.getTimeStam(), u1.getTimeStam()));
+
+        if (isAdded() && getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                if (adapter != null) adapter.notifyDataSetChanged();
+            });
+        }
     }
 
     @Override
-    public void onStop() {
-        usersRef.removeEventListener(chatListener);
-        super.onStop();
-    }
-
-    @Override
-    public void onStart() {
-        list.sort(null);
-        adapter.notifyDataSetChanged();
-        super.onStart();
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (chatsRef != null && chatsListener != null) {
+            chatsRef.removeEventListener(chatsListener);
+        }
+        binding = null;
     }
 }
