@@ -284,7 +284,7 @@ WeTalk utilizes a structured Firebase Realtime Database schema for real-time mes
 
 Developed with ❤️ by **Muhammad Usman** and the **Tech Titans Team**.
 
-- **GitHub**: [@muhammad-usman](https://github.com/muhammad-usman)
+- **GitHub**: [@usmana6072](https://github.com/usmana6072)
 - **Role**: Lead Android Developer
 
 ---
