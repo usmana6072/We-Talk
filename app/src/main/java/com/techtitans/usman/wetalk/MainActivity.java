@@ -47,6 +47,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         auth=FirebaseAuth.getInstance();
         database=FirebaseDatabase.getInstance();
+        try {
+            database.setPersistenceEnabled(true);
+        } catch (Exception ignored) {}
         setSupportActionBar(binding.toolbar);
 
         initConfig();

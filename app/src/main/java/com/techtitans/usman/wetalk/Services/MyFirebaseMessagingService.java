@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
@@ -25,6 +26,7 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.techtitans.usman.wetalk.Calls.IncomingCallActivity;
 import com.techtitans.usman.wetalk.MainActivity;
+import com.techtitans.usman.wetalk.NotificationSettingsActivity;
 import com.techtitans.usman.wetalk.R;
 
 import java.util.Map;
@@ -53,22 +55,31 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
         
+        SharedPreferences preferences = getSharedPreferences(NotificationSettingsActivity.PREFS_NAME, Context.MODE_PRIVATE);
+        boolean msgNotif = preferences.getBoolean(NotificationSettingsActivity.KEY_MSG_NOTIF, true);
+        boolean callNotif = preferences.getBoolean(NotificationSettingsActivity.KEY_CALL_NOTIF, true);
+        boolean soundVibrate = preferences.getBoolean(NotificationSettingsActivity.KEY_SOUND_VIBRATE, true);
+
         Map<String, String> data = remoteMessage.getData();
         if (!data.isEmpty()) {
             String type = data.get("type");
             Log.d("FCM_SERVICE", "Data Type: " + type);
             
             if ("call".equals(type)) {
-                handleIncomingCall(data);
+                if (callNotif) {
+                    handleIncomingCall(data, soundVibrate);
+                }
             } else {
-                String title = data.get("title") != null ? data.get("title") : "New Message";
-                String message = data.get("message") != null ? data.get("message") : "";
-                showNotification(title, message);
+                if (msgNotif) {
+                    String title = data.get("title") != null ? data.get("title") : "New Message";
+                    String message = data.get("message") != null ? data.get("message") : "";
+                    showNotification(title, message, soundVibrate);
+                }
             }
         }
     }
 
-    private void handleIncomingCall(Map<String, String> data) {
+    private void handleIncomingCall(Map<String, String> data, boolean soundVibrate) {
         String callerName = data.get("callerName");
         String groupName = data.get("groupName");
         String title = "Incoming Call";
@@ -98,10 +109,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setCategory(NotificationCompat.CATEGORY_CALL)
                 .setAutoCancel(true)
                 .setOngoing(true)
-                .setSound(ringtoneUri)
                 .setFullScreenIntent(fullScreenIntent, true)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setVibrate(new long[]{1000, 1000, 1000, 1000, 1000});
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+        if (soundVibrate) {
+            builder.setSound(ringtoneUri)
+                   .setVibrate(new long[]{1000, 1000, 1000, 1000, 1000});
+        } else {
+            builder.setSound(null);
+        }
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -112,7 +128,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         notificationManager.notify(10, builder.build());
     }
 
-    private void showNotification(String title, String messageBody) {
+    private void showNotification(String title, String messageBody, boolean soundVibrate) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, (int) System.currentTimeMillis(), intent, 
@@ -125,8 +141,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(messageBody))
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setContentIntent(pendingIntent);
+
+        if (soundVibrate) {
+            builder.setDefaults(NotificationCompat.DEFAULT_ALL);
+        } else {
+            builder.setDefaults(0);
+        }
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 

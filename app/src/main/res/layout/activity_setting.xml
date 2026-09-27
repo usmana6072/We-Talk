@@ -22,6 +22,7 @@
             android:layout_height="32dp"
             android:layout_marginStart="12dp"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back"
             android:padding="4dp"
             app:srcCompat="@drawable/backarrow"
             app:tint="@color/white" />
@@ -185,6 +186,16 @@
             android:text="Help"
             android:textColor="#111B21"
             android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvAppVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="WeTalk v1.2.0"
+            android:textColor="#8696A0"
+            android:textSize="14sp" />
     </LinearLayout>
 
 </LinearLayout>

@@ -13,8 +13,8 @@ android {
         applicationId "com.techtitans.usman.wetalk"
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.2.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -64,23 +64,30 @@ dependencies {
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
 
-    //circular image view dependency
+    // Lifecycle Architecture Components
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
+
+    // Room Database
+    implementation 'androidx.room:room-runtime:2.6.1'
+    annotationProcessor 'androidx.room:room-compiler:2.6.1'
+
+    // circular image view dependency
     implementation 'de.hdodenhof:circleimageview:3.1.0'
 
-    //Picasso dependency
+    // Picasso dependency
     implementation 'com.squareup.picasso:picasso:2.8'
 
-    //firebase dependency
+    // firebase dependency
     implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-auth:21.5.0")
-    implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
 
-    //cloudinary sdk
+    // cloudinary sdk
     implementation 'com.cloudinary:cloudinary-android:3.1.2'
     implementation 'com.cloudinary:cloudinary-core:1.38.0'
 
-    //agora for calling features
+    // agora for calling features
     implementation 'io.agora.rtc:full-sdk:4.5.0'
     implementation 'commons-codec:commons-codec:1.15'
 

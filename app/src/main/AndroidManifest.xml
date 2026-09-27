@@ -64,6 +64,18 @@
             android:name=".SettingActivity"
             android:exported="false" />
         <activity
+            android:name=".HelpActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PrivacyPolicyActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AboutUsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".NotificationSettingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".UsersListActivity"
             android:exported="false" />
         <activity

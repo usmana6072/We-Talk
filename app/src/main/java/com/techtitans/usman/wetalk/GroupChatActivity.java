@@ -1,6 +1,7 @@
 package com.techtitans.usman.wetalk;
 
 import android.app.AlertDialog;
+import android.app.DownloadManager;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -12,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.OpenableColumns;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -20,7 +22,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.cloudinary.android.MediaManager;
 import com.cloudinary.android.callback.ErrorInfo;
@@ -42,6 +46,9 @@ import com.techtitans.usman.wetalk.Services.AgoraTokenFetcher;
 import com.techtitans.usman.wetalk.Services.FcmAccessTokenManager;
 import com.techtitans.usman.wetalk.Services.NotificationSender;
 import com.techtitans.usman.wetalk.databinding.ActivityGroupChatBinding;
+import com.techtitans.usman.wetalk.repository.ChatRepository;
+import com.techtitans.usman.wetalk.viewmodel.ChatViewModel;
+import com.techtitans.usman.wetalk.viewmodel.ChatViewModelFactory;
 
 import org.json.JSONObject;
 
@@ -56,8 +63,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import android.app.DownloadManager;
-import android.util.Log;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -85,6 +90,11 @@ public class GroupChatActivity extends AppCompatActivity {
     String senderId, groupId, groupName, groupIcon;
     ApiService apiService;
 
+    private ChatViewModel viewModel;
+    private boolean isFirstLoad = true;
+    private boolean isLoadingOlder = false;
+    private String firebasePath;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -107,16 +117,14 @@ public class GroupChatActivity extends AppCompatActivity {
         groupIcon = getIntent().getStringExtra("groupIcon");
 
         if (groupId == null) {
-            // Global Group Chat Mode
             binding.tvUserNameChatDetails.setText("Global Group");
             binding.profileimage.setImageResource(R.drawable.avatar);
             binding.voiceCall.setVisibility(View.GONE);
             binding.videoCall.setVisibility(View.GONE);
         } else {
-            // Private Group Chat Mode
             binding.tvUserNameChatDetails.setText(groupName != null ? groupName : "Group");
-            if (groupIcon != null && !groupIcon.isEmpty()) {
-                Picasso.get().load(groupIcon).placeholder(R.drawable.avatar).into(binding.profileimage);
+            if (groupIcon != null && !groupIcon.trim().isEmpty()) {
+                Picasso.get().load(groupIcon).placeholder(R.drawable.avatar).error(R.drawable.avatar).into(binding.profileimage);
             } else {
                 binding.profileimage.setImageResource(R.drawable.avatar);
             }
@@ -132,20 +140,96 @@ public class GroupChatActivity extends AppCompatActivity {
         }
 
         adapter = new ChatAdapter(messageList, this);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         binding.recyclerViewChatDetails.setAdapter(adapter);
-        binding.recyclerViewChatDetails.setLayoutManager(new LinearLayoutManager(this));
+        binding.recyclerViewChatDetails.setLayoutManager(layoutManager);
 
         binding.imageViewSend.setOnClickListener(e -> sendMessage(null, "text", null, 0));
         binding.imageViewAttachment.setOnClickListener(v -> showAttachmentOptions());
 
-        loadMessages();
+        String chatRoomId = (groupId == null) ? "GlobalGroup" : "Group_" + groupId;
+        firebasePath = (groupId == null) ? "GroupChat" : "Groups/" + groupId + "/messages";
+
+        viewModel = new ViewModelProvider(this, new ChatViewModelFactory(getApplication())).get(ChatViewModel.class);
+        viewModel.init(chatRoomId, firebasePath);
+
+        viewModel.getMessagesLiveData().observe(this, messages -> {
+            if (messages != null) {
+                int previousCount = messageList.size();
+                messageList.clear();
+                messageList.addAll(messages);
+                adapter.notifyDataSetChanged();
+
+                int newCount = messageList.size();
+
+                if (isFirstLoad) {
+                    isFirstLoad = false;
+                    if (newCount > 0) {
+                        binding.recyclerViewChatDetails.scrollToPosition(newCount - 1);
+                    }
+                } else if (isLoadingOlder) {
+                    isLoadingOlder = false;
+                    int itemsInserted = newCount - previousCount;
+                    if (itemsInserted > 0) {
+                        layoutManager.scrollToPositionWithOffset(itemsInserted, 0);
+                    }
+                } else {
+                    if (newCount > 0) {
+                        binding.recyclerViewChatDetails.post(() -> {
+                            binding.recyclerViewChatDetails.scrollToPosition(newCount - 1);
+                        });
+                    }
+                }
+            }
+        });
+
+        viewModel.getIsLoadingOlder().observe(this, loading -> {
+            this.isLoadingOlder = Boolean.TRUE.equals(loading);
+        });
+
+        viewModel.getToastMessage().observe(this, msg -> {
+            if (msg != null && !msg.isEmpty()) {
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        binding.recyclerViewChatDetails.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy < 0 && !recyclerView.canScrollVertically(-1)) { // Reached top
+                    if (!isLoadingOlder && messageList.size() >= ChatRepository.RECENT_MESSAGES_LIMIT) {
+                        viewModel.loadOlderMessages();
+                    }
+                }
+            }
+        });
 
         binding.backArrow.setOnClickListener(e -> finish());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.registerReceiver(this, onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_EXPORTED);
         } else {
-            registerReceiver(onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+            ContextCompat.registerReceiver(this, onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_EXPORTED);
+        }
+    }
+
+    private final BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
+        }
+    };
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try {
+            unregisterReceiver(onDownloadComplete);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -165,7 +249,7 @@ public class GroupChatActivity extends AppCompatActivity {
                 
                 String myUid = FirebaseAuth.getInstance().getUid();
                 if (myUid != null) {
-                    CallHistoryHelper.logCall(myUid, groupId, groupName, groupIcon, isVideo ? "video" : "audio", "outgoing");
+                    CallHistoryHelper.logCall(myUid, groupId, groupName, groupIcon, isVideo ? "video" : "audio", "outgoing", true);
                 }
 
                 Intent intent = new Intent(GroupChatActivity.this, CallActivity.class);
@@ -216,7 +300,6 @@ public class GroupChatActivity extends AppCompatActivity {
 
         database.getReference().child("Calls").child(memberId).setValue(callRequest);
 
-        // Also FCM for background
         database.getReference().child("FCM").child(memberId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -292,29 +375,6 @@ public class GroupChatActivity extends AppCompatActivity {
         });
     }
 
-    private void loadMessages() {
-        String path = (groupId == null) ? "GroupChat" : "Groups/" + groupId + "/messages";
-        database.getReference().child(path).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                messageList.clear();
-                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                    MessageModel messageModel = dataSnapshot.getValue(MessageModel.class);
-                    if (messageModel != null) {
-                        messageList.add(messageModel);
-                    }
-                }
-                adapter.notifyDataSetChanged();
-                if (messageList.size() > 0) {
-                    binding.recyclerViewChatDetails.scrollToPosition(messageList.size() - 1);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
     private void sendMessage(String text, String type, String mediaUrl, long fileSize) {
         String messageStr = text;
         if (text == null) {
@@ -330,7 +390,6 @@ public class GroupChatActivity extends AppCompatActivity {
         String senderName = auth.getCurrentUser().getDisplayName();
         if (senderName == null) senderName = "User";
         
-        // WhatsApp style: name inside bubble for group chats
         String displayMsg = (groupId == null || "text".equals(type)) ? String.format("\b %s \b\n %s", senderName, messageStr) : messageStr;
 
         MessageModel model = new MessageModel(senderId, displayMsg);
@@ -342,10 +401,15 @@ public class GroupChatActivity extends AppCompatActivity {
 
         String path = (groupId == null) ? "GroupChat" : "Groups/" + groupId + "/messages";
         DatabaseReference msgRef = database.getReference().child(path).push();
-        model.setMessageId(msgRef.getKey()); // Fix: Added message ID for download tracking
+        model.setMessageId(msgRef.getKey());
+
+        // Save locally to Room DB
+        if (viewModel != null) {
+            viewModel.saveMessageLocally(model);
+        }
+
         msgRef.setValue(model);
 
-        // Instant local copy for sender
         if (mediaUrl != null) {
             try {
                 String publicDir = Environment.DIRECTORY_PICTURES;
@@ -366,20 +430,32 @@ public class GroupChatActivity extends AppCompatActivity {
              OutputStream out = new FileOutputStream(destFile)) {
             byte[] buf = new byte[8192];
             int len;
-            while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
-        } catch (IOException e) {}
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void showAttachmentOptions() {
-        CharSequence[] options = new CharSequence[]{"Image", "Video", "Document"};
+        CharSequence[] options = new CharSequence[]{"Image (No Limit)", "Video (Max 20MB)", "Document (Max 5MB)"};
         new AlertDialog.Builder(this)
-                .setTitle("Attach")
+                .setTitle("Select Media Type")
                 .setItems(options, (dialog, which) -> {
-                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                    if (which == 0) intent.setType("image/*");
-                    else if (which == 1) intent.setType("video/*");
-                    else intent.setType("*/*");
-                    startActivityForResult(intent, which == 0 ? REQUEST_PICK_IMAGE : (which == 1 ? REQUEST_PICK_VIDEO : REQUEST_PICK_DOC));
+                    if (which == 0) {
+                        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                        intent.setType("image/*");
+                        startActivityForResult(intent, REQUEST_PICK_IMAGE);
+                    } else if (which == 1) {
+                        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                        intent.setType("video/*");
+                        startActivityForResult(intent, REQUEST_PICK_VIDEO);
+                    } else if (which == 2) {
+                        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                        intent.setType("*/*");
+                        startActivityForResult(intent, REQUEST_PICK_DOC);
+                    }
                 }).show();
     }
 
@@ -387,117 +463,124 @@ public class GroupChatActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK && data != null) {
+
             if (requestCode == REQUEST_PREVIEW_MEDIA) {
-                Uri uri = data.getParcelableExtra("uri");
+                Uri previewUri = data.getParcelableExtra("uri");
                 String type = data.getStringExtra("type");
                 String caption = data.getStringExtra("caption");
-                if (uri != null) {
-                    FileMeta meta = getFileMeta(uri);
-                    uploadMedia(uri, type, meta.name, meta.size, caption);
+                if (previewUri != null) {
+                    currentFileUri = previewUri;
+                    FileMeta meta = getFileMeta(previewUri);
+                    currentFileName = meta.name;
+                    uploadMediaToCloudinary(previewUri, type, meta.name, meta.size, caption);
                 }
                 return;
             }
 
             if (data.getData() != null) {
                 Uri fileUri = data.getData();
-                FileMeta meta = getFileMeta(fileUri);
+                currentFileUri = fileUri;
+                FileMeta fileMeta = getFileMeta(fileUri);
+                currentFileName = fileMeta.name;
+
                 if (requestCode == REQUEST_PICK_IMAGE) {
-                    startPreview(fileUri, "image");
+                    Intent intent = new Intent(this, MediaPreviewActivityV2.class);
+                    intent.putExtra("uri", fileUri);
+                    intent.putExtra("type", "image");
+                    startActivityForResult(intent, REQUEST_PREVIEW_MEDIA);
                 } else if (requestCode == REQUEST_PICK_VIDEO) {
-                    if (meta.size > MAX_VIDEO_SIZE) {
-                        Toast.makeText(this, "Video too large (Max 20MB)", Toast.LENGTH_SHORT).show();
+                    if (fileMeta.size > MAX_VIDEO_SIZE) {
+                        showSizeErrorDialog("Video", "20 MB", fileMeta.size);
                         return;
                     }
-                    startPreview(fileUri, "video");
+                    Intent intent = new Intent(this, MediaPreviewActivityV2.class);
+                    intent.putExtra("uri", fileUri);
+                    intent.putExtra("type", "video");
+                    startActivityForResult(intent, REQUEST_PREVIEW_MEDIA);
                 } else if (requestCode == REQUEST_PICK_DOC) {
-                    if (meta.size > MAX_DOC_SIZE) {
-                        Toast.makeText(this, "Document too large (Max 5MB)", Toast.LENGTH_SHORT).show();
+                    if (fileMeta.size > MAX_DOC_SIZE) {
+                        showSizeErrorDialog("Document", "5 MB", fileMeta.size);
                         return;
                     }
-                    uploadMedia(fileUri, "document", meta.name, meta.size, "");
+                    uploadMediaToCloudinary(fileUri, "document", fileMeta.name, fileMeta.size, "");
                 }
             }
         }
     }
 
-    private void startPreview(Uri uri, String type) {
-        Intent intent = new Intent(this, MediaPreviewActivityV2.class);
-        intent.putExtra("uri", uri);
-        intent.putExtra("type", type);
-        startActivityForResult(intent, REQUEST_PREVIEW_MEDIA);
+    private void showSizeErrorDialog(String fileType, String maxLimit, long actualSize) {
+        double sizeInMb = actualSize / (1024.0 * 1024.0);
+        String formattedSize = String.format("%.2f MB", sizeInMb);
+        new AlertDialog.Builder(this)
+                .setTitle("File Size Exceeded")
+                .setMessage(fileType + " size limit is " + maxLimit + ".\nYour selected file is " + formattedSize + ".")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .show();
     }
 
-    private void uploadMedia(Uri uri, String type, String name, long size, String caption) {
-        this.currentFileUri = uri;
-        this.currentFileName = name;
+    private void uploadMediaToCloudinary(Uri uri, String type, String fileName, long fileSize, String caption) {
         Toast.makeText(this, "Uploading attachment...", Toast.LENGTH_SHORT).show();
-        String resType = "image";
-        if ("video".equals(type)) resType = "video";
-        else if ("document".equals(type)) resType = "raw";
+        String resourceType = "auto";
+        if ("video".equalsIgnoreCase(type)) {
+            resourceType = "video";
+        } else if ("document".equalsIgnoreCase(type)) {
+            resourceType = "raw";
+        } else {
+            resourceType = "image";
+        }
 
         MediaManager.get().upload(uri)
                 .unsigned("wetalk_profile_images")
-                .option("folder", "group_media")
-                .option("resource_type", resType)
+                .option("folder", "chat_media")
+                .option("resource_type", resourceType)
                 .callback(new UploadCallback() {
                     @Override
-                    public void onStart(String requestId) {}
+                    public void onStart(String requestId) { }
+
                     @Override
-                    public void onProgress(String requestId, long bytes, long totalBytes) {}
+                    public void onProgress(String requestId, long bytes, long totalBytes) { }
+
                     @Override
                     public void onSuccess(String requestId, Map resultData) {
-                        String url = resultData.get("secure_url").toString();
-                        sendMessage(caption, type, url, size);
-                        
-                        // Copy to local
-                        try {
-                            String publicDir = Environment.DIRECTORY_PICTURES;
-                            if ("video".equalsIgnoreCase(type)) publicDir = Environment.DIRECTORY_MOVIES;
-                            else if ("document".equalsIgnoreCase(type)) publicDir = Environment.DIRECTORY_DOWNLOADS;
-                            
-                            MessageModel temp = new MessageModel();
-                            temp.setMessageId("temp"); // won't match exactly but prevents download icon
-                            temp.setFileName(name);
-                            File localFile = ChatAdapter.getLocalFile(publicDir, ChatAdapter.getUniqueFileName(temp));
-                        } catch (Exception e) {}
+                        String secureUrl = resultData.get("secure_url").toString();
+                        sendMessage(caption, type, secureUrl, fileSize);
+                        Toast.makeText(GroupChatActivity.this, "Attachment sent successfully", Toast.LENGTH_SHORT).show();
                     }
+
                     @Override
                     public void onError(String requestId, ErrorInfo error) {
-                        Toast.makeText(GroupChatActivity.this, "Upload failed", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(GroupChatActivity.this, "Upload failed: " + error.getDescription(), Toast.LENGTH_SHORT).show();
                     }
+
                     @Override
-                    public void onReschedule(String requestId, ErrorInfo error) {}
+                    public void onReschedule(String requestId, ErrorInfo error) {
+                    }
                 }).dispatch();
     }
 
     private FileMeta getFileMeta(Uri uri) {
-        String name = "file"; long size = 0;
+        String name = "file";
+        long size = 0;
         try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
-                int ni = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                int si = cursor.getColumnIndex(OpenableColumns.SIZE);
-                if (ni != -1) name = cursor.getString(ni);
-                if (si != -1) size = cursor.getLong(si);
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (nameIndex != -1) name = cursor.getString(nameIndex);
+                if (sizeIndex != -1) size = cursor.getLong(sizeIndex);
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return new FileMeta(name, size);
     }
 
     private static class FileMeta {
-        String name; long size;
-        FileMeta(String n, long s) { name = n; size = s; }
-    }
+        String name;
+        long size;
 
-    private final BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            adapter.notifyDataSetChanged();
+        FileMeta(String name, long size) {
+            this.name = name;
+            this.size = size;
         }
-    };
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        try { unregisterReceiver(onDownloadComplete); } catch (Exception e) {}
     }
 }

@@ -2,31 +2,29 @@ package com.techtitans.usman.wetalk;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.DownloadManager;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.IntentFilter;
 import android.os.Environment;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import android.provider.OpenableColumns;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.cloudinary.android.MediaManager;
 import com.cloudinary.android.callback.ErrorInfo;
@@ -48,16 +46,23 @@ import com.techtitans.usman.wetalk.Services.AgoraTokenFetcher;
 import com.techtitans.usman.wetalk.Services.FcmAccessTokenManager;
 import com.techtitans.usman.wetalk.Services.NotificationSender;
 import com.techtitans.usman.wetalk.databinding.ActivityChatDetailBinding;
+import com.techtitans.usman.wetalk.repository.ChatRepository;
+import com.techtitans.usman.wetalk.viewmodel.ChatViewModel;
+import com.techtitans.usman.wetalk.viewmodel.ChatViewModelFactory;
 
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import android.util.Log;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -84,6 +89,10 @@ public class ChatDetailActivity extends AppCompatActivity {
     ArrayList<MessageModel> list = new ArrayList<>();
     ChatAdapter adapter;
     ApiService apiService;
+
+    private ChatViewModel viewModel;
+    private boolean isFirstLoad = true;
+    private boolean isLoadingOlder = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,8 +138,65 @@ public class ChatDetailActivity extends AppCompatActivity {
         senderRoom = senderId + receiverId;
         receiverRoom = receiverId + senderId;
 
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        binding.recyclerViewChatDetails.setLayoutManager(layoutManager);
         binding.recyclerViewChatDetails.setAdapter(adapter);
-        binding.recyclerViewChatDetails.setLayoutManager(new LinearLayoutManager(this));
+
+        // Setup ViewModel and Room DB local caching
+        viewModel = new ViewModelProvider(this, new ChatViewModelFactory(getApplication())).get(ChatViewModel.class);
+        viewModel.init(senderRoom, "Chats/" + senderRoom);
+
+        viewModel.getMessagesLiveData().observe(this, messages -> {
+            if (messages != null) {
+                int previousCount = list.size();
+                list.clear();
+                list.addAll(messages);
+                adapter.notifyDataSetChanged();
+
+                int newCount = list.size();
+
+                if (isFirstLoad) {
+                    isFirstLoad = false;
+                    if (newCount > 0) {
+                        binding.recyclerViewChatDetails.scrollToPosition(newCount - 1);
+                    }
+                } else if (isLoadingOlder) {
+                    isLoadingOlder = false;
+                    int itemsInserted = newCount - previousCount;
+                    if (itemsInserted > 0) {
+                        layoutManager.scrollToPositionWithOffset(itemsInserted, 0);
+                    }
+                } else {
+                    if (newCount > 0) {
+                        binding.recyclerViewChatDetails.post(() -> {
+                            binding.recyclerViewChatDetails.scrollToPosition(newCount - 1);
+                        });
+                    }
+                }
+            }
+        });
+
+        viewModel.getIsLoadingOlder().observe(this, loading -> {
+            this.isLoadingOlder = Boolean.TRUE.equals(loading);
+        });
+
+        viewModel.getToastMessage().observe(this, msg -> {
+            if (msg != null && !msg.isEmpty()) {
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        binding.recyclerViewChatDetails.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy < 0 && !recyclerView.canScrollVertically(-1)) { // Reached top
+                    if (!isLoadingOlder && list.size() >= ChatRepository.RECENT_MESSAGES_LIMIT) {
+                        viewModel.loadOlderMessages();
+                    }
+                }
+            }
+        });
 
         binding.imageViewSend.setOnClickListener(e -> {
             String message = binding.tvMessage.getText().toString();
@@ -148,6 +214,10 @@ public class ChatDetailActivity extends AppCompatActivity {
                         .push();
 
                 model.setMessageId(messageRef.getKey());
+
+                // Save locally first
+                viewModel.saveMessageLocally(model);
+
                 messageRef.setValue(model);
 
                 database.getReference().child("Users").child(receiverId)
@@ -170,31 +240,6 @@ public class ChatDetailActivity extends AppCompatActivity {
 
         binding.imageViewAttachment.setOnClickListener(v -> showAttachmentOptions());
 
-        database.getReference().child("Chats").child(senderRoom).
-                addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        list.clear();
-                        for (DataSnapshot snapshot1 : snapshot.getChildren()) {
-                            MessageModel modele = snapshot1.getValue(MessageModel.class);
-                            if (modele != null) {
-                                list.add(modele);
-                            }
-                        }
-                        adapter.notifyDataSetChanged();
-                        if (list.size() > 0) {
-                            binding.recyclerViewChatDetails.post(() -> {
-                                binding.recyclerViewChatDetails.scrollToPosition(list.size() - 1);
-                            });
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-
-                    }
-                });
-
         binding.tvUserNameChatDetails.setOnClickListener(e -> {
             Intent intent = new Intent(ChatDetailActivity.this, ProfileViewActivity.class);
             intent.putExtra("receiverId", receiverId);
@@ -212,7 +257,7 @@ public class ChatDetailActivity extends AppCompatActivity {
             ContextCompat.registerReceiver(this, onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), ContextCompat.RECEIVER_EXPORTED);
         }
         binding.videoCall.setOnClickListener(e -> launchCallScreen(true));
-        binding.voiceCall.setOnClickListener(e-> launchCallScreen(false));
+        binding.voiceCall.setOnClickListener(e -> launchCallScreen(false));
     }
 
     private final BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
@@ -346,6 +391,12 @@ public class ChatDetailActivity extends AppCompatActivity {
 
                         DatabaseReference messageRef = database.getReference().child("Chats").child(senderRoom).push();
                         mediaModel.setMessageId(messageRef.getKey());
+
+                        // Save locally in Room DB
+                        if (viewModel != null) {
+                            viewModel.saveMessageLocally(mediaModel);
+                        }
+
                         messageRef.setValue(mediaModel);
 
                         database.getReference().child("Users").child(receiverId).child("timeStam").setValue(new Date().getTime());

@@ -23,8 +23,8 @@ import java.util.ArrayList;
 
 public class UserAdapterChatView extends RecyclerView.Adapter<UserAdapterChatView.ViewHolder> {
 
-    private ArrayList<Users> list;
-    private Context context;
+    private final ArrayList<Users> list;
+    private final Context context;
 
     public UserAdapterChatView(ArrayList<Users> list, Context context) {
         this.list = list;
@@ -42,13 +42,14 @@ public class UserAdapterChatView extends RecyclerView.Adapter<UserAdapterChatVie
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Users users = list.get(position);
 
-        if (users.getProfilePic() != null && !users.getProfilePic().isEmpty()) {
-            Picasso.get().load(users.getProfilePic()).placeholder(R.drawable.avatar).into(holder.profile);
+        if (users.getProfilePic() != null && !users.getProfilePic().trim().isEmpty()) {
+            Picasso.get().load(users.getProfilePic()).placeholder(R.drawable.avatar).error(R.drawable.avatar).into(holder.profile);
         } else {
             holder.profile.setImageResource(R.drawable.avatar);
         }
 
-        holder.tvUserName.setText(users.getUserName());
+        String userName = (users.getUserName() != null && !users.getUserName().isEmpty()) ? users.getUserName() : "User";
+        holder.tvUserName.setText(userName);
 
         String lastMsg = users.getLastMessage();
         if (lastMsg != null && !lastMsg.isEmpty()) {
@@ -56,6 +57,8 @@ public class UserAdapterChatView extends RecyclerView.Adapter<UserAdapterChatVie
                 lastMsg = lastMsg.substring(0, 35) + "...";
             }
             holder.tvLastMessage.setText(lastMsg);
+        } else if (users.getMail() != null && !users.getMail().isEmpty()) {
+            holder.tvLastMessage.setText(users.getMail());
         } else {
             holder.tvLastMessage.setText("No Chat");
         }
@@ -63,8 +66,8 @@ public class UserAdapterChatView extends RecyclerView.Adapter<UserAdapterChatVie
         View.OnClickListener openChatListener = v -> {
             Intent intent = new Intent(context, ChatDetailActivity.class);
             intent.putExtra("userId", users.getUserId());
-            intent.putExtra("username", users.getUserName());
-            intent.putExtra("profile", users.getProfilePic());
+            intent.putExtra("username", userName);
+            intent.putExtra("profile", users.getProfilePic() != null ? users.getProfilePic() : "");
             context.startActivity(intent);
         };
 

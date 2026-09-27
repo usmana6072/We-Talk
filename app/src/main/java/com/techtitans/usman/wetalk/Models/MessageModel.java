@@ -1,5 +1,7 @@
 package com.techtitans.usman.wetalk.Models;
 
+import com.techtitans.usman.wetalk.db.MessageEntity;
+
 public class MessageModel {
     String userId, messageText;
     long messageTime;
@@ -115,5 +117,39 @@ public class MessageModel {
 
     public void setFileSize(long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public MessageEntity toEntity(String chatRoomId) {
+        String msgId = (this.messageId != null && !this.messageId.isEmpty())
+                ? this.messageId
+                : ("temp_" + System.currentTimeMillis() + "_" + (long)(Math.random() * 1000));
+        return new MessageEntity(
+                msgId,
+                chatRoomId,
+                this.userId,
+                this.receiverId,
+                this.messageText,
+                this.messageTime,
+                this.getType(),
+                this.mediaUrl,
+                this.fileName,
+                this.fileSize,
+                "sent"
+        );
+    }
+
+    public static MessageModel fromEntity(MessageEntity entity) {
+        if (entity == null) return null;
+        MessageModel model = new MessageModel();
+        model.setMessageId(entity.getMessageId());
+        model.setUserId(entity.getSenderId());
+        model.setReceiverId(entity.getReceiverId());
+        model.setMessageText(entity.getMessageText());
+        model.setMessageTime(entity.getMessageTime());
+        model.setType(entity.getType());
+        model.setMediaUrl(entity.getMediaUrl());
+        model.setFileName(entity.getFileName());
+        model.setFileSize(entity.getFileSize());
+        return model;
     }
 }

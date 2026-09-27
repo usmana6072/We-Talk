@@ -1,10 +1,58 @@
 <resources>
     <string name="app_name">WeTalk</string>
     <string name="default_web_client_id">192609588700-3d1mhlild1m88o9298if57q6q5q2v64j.apps.googleusercontent.com</string>
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="enter_user_name">Enter User Name</string>
     <string name="user">user</string>
     <string name="agora_app_id">863d1af8f26c4e59815aee9fb0a9f414</string>
     <string name="agora_app_certificate">4fd508c5c7a0487590c3f889a7088764</string>
+
+    <!-- Invite Friends & Website Strings -->
+    <string name="app_website_link">https://wetalk.app</string>
+    <string name="invite_friends_text">Join me on WeTalk! Fast, secure messaging and HD voice/video calls. Download now: https://wetalk.app</string>
+    <string name="invite_chooser_title">Invite Friends via</string>
+
+    <!-- About Us Strings -->
+    <string name="about_us_title">About WeTalk</string>
+    <string name="about_us_version_label">Version 1.2.0</string>
+    <string name="about_us_description">WeTalk is a modern real-time messaging and calling platform designed for fast, reliable, and secure communication. Built natively for Android using Java, Firebase, Agora RTC Engine, and Cloudinary media cloud storage.</string>
+    <string name="about_us_company">Developed with ❤️ by Tech Titans Team</string>
+    <string name="about_us_website_btn">Visit Our Website</string>
+    <string name="about_us_copyright">© 2025 Tech Titans Team. All Rights Reserved.</string>
+
+    <!-- Privacy Policy Strings -->
+    <string name="privacy_policy_title">Privacy Policy</string>
+    <string name="privacy_policy_last_updated">Last updated: March 2025</string>
+    <string name="privacy_sec1_title">1. Data Collection</string>
+    <string name="privacy_sec1_desc">WeTalk collects essential account information such as your display name, email address, profile photo, and FCM push notification tokens strictly to deliver messaging and calling services.</string>
+    <string name="privacy_sec2_title">2. Information Usage</string>
+    <string name="privacy_sec2_desc">Your personal data is used solely to facilitate 1-on-1 direct messaging, private group chats, 24-hour status updates, and call signaling. We do not sell or share your personal data with third parties.</string>
+    <string name="privacy_sec3_title">3. Media &amp; Offline Caching</string>
+    <string name="privacy_sec3_desc">Shared media attachments (images, videos, documents) are securely stored via Cloudinary CDN and cached locally on your device in Room Database for instant offline viewing.</string>
+    <string name="privacy_sec4_title">4. Third-Party Services</string>
+    <string name="privacy_sec4_desc">WeTalk integrates trusted third-party SDKs including Firebase Authentication, Firebase Realtime Database, Agora RTC Engine for HD calling, and Cloudinary for media delivery.</string>
+
+    <!-- Help & Support Strings -->
+    <string name="help_title">Help &amp; Support</string>
+    <string name="help_subtitle">Frequently Asked Questions</string>
+    <string name="help_faq1_q">How do I start a voice or video call?</string>
+    <string name="help_faq1_a">Open any direct 1-on-1 chat or group chat, and tap the Voice Call or Video Call icon in the top toolbar to start an HD call.</string>
+    <string name="help_faq2_q">How do 24-hour status stories work?</string>
+    <string name="help_faq2_a">Navigate to the Status tab, tap \'My Status\' to upload an image, and it will automatically expire and delete after 24 hours.</string>
+    <string name="help_faq3_q">Can I read messages offline?</string>
+    <string name="help_faq3_a">Yes! All your conversation messages are stored locally using Room Database, allowing you to read chats instantly without internet access.</string>
+    <string name="help_faq4_q">How do I manage group permissions?</string>
+    <string name="help_faq4_a">Group admins can edit group details, update group avatars, and add or remove members directly from the Group Info screen.</string>
+    <string name="help_contact_title">Still need help?</string>
+    <string name="help_contact_btn">Contact Support Team</string>
+    <string name="support_email">support@wetalk.app</string>
+
+    <!-- Notification Settings Strings -->
+    <string name="notification_settings_title">Notification Settings</string>
+    <string name="pref_msg_notif_title">Message Notifications</string>
+    <string name="pref_msg_notif_desc">Receive push alerts for new incoming 1-on-1 and group messages</string>
+    <string name="pref_call_notif_title">Incoming Call Ringing Alerts</string>
+    <string name="pref_call_notif_desc">Allow incoming voice and video calls to ring over lock screen</string>
+    <string name="pref_sound_title">Sound &amp; Vibration</string>
+    <string name="pref_sound_desc">Play ringtone and vibrate on incoming notifications</string>
 </resources>
